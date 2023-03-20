@@ -52,7 +52,7 @@ defmodule Meld do
         ref = make_ref()
         monitor_ref = Process.monitor(owner)
 
-        :ok = Meld.Supervisor.register(name, key, ref)
+        :ok = register(name, key, ref)
 
         result =
           receive do
@@ -70,11 +70,23 @@ defmodule Meld do
           end
 
         true = Process.demonitor(monitor_ref, [:flush])
-        :ok = Meld.Supervisor.unregister(name, key)
+        :ok = unregister(name, key)
         result
 
       {:error, _reason} = err ->
         err
     end
   end
+
+  @spec register(name :: term(), key :: term(), ref :: reference(), keyword()) :: :ok
+  def register(name, key, ref, _opts \\ []) do
+    {:ok, _} = Registry.register(name, key, ref)
+    :ok
+  end
+
+  @spec unregister(name :: term(), key :: term(), keyword()) :: :ok
+  def unregister(name, key, _opts \\ []) do
+    :ok = Registry.unregister(name, key)
+  end
+
 end

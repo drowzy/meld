@@ -2,7 +2,8 @@ defmodule Meld.Supervisor do
   use Supervisor
 
   def start_link(name, opts \\ []) do
-    Supervisor.start_link(__MODULE__, {name, opts}, name: Module.concat([name, "Supervisor"]))
+    sup_name = Module.concat([name, "Supervisor"])
+    Supervisor.start_link(__MODULE__, {name, opts}, name: sup_name)
   end
 
   def init({name, _opts}) do
@@ -15,17 +16,6 @@ defmodule Meld.Supervisor do
     Supervisor.init(children, strategy: :one_for_one)
   end
 
-  @spec register(name :: term(), key :: term(), ref :: reference(), keyword()) :: :ok
-  def register(name, key, ref, _opts \\ []) do
-    {:ok, _} = Registry.register(name, key, ref)
-    :ok
-  end
-
-  @spec unregister(name :: term(), key :: term(), keyword()) :: :ok
-  def unregister(name, key, _opts \\ []) do
-    :ok = Registry.unregister(name, key)
-  end
-
   @spec start_request(name :: term(), mfa_or_fun :: term(), keyword()) :: {:ok, pid} | term()
   def start_request(name, key, mfa_or_fun, _opts \\ []) do
     sup_name = Module.concat([name, "DynamicSupervisor"])
@@ -34,15 +24,21 @@ defmodule Meld.Supervisor do
 
     child_spec = {Meld.Request, {request_name, key, mfa_or_fun, name}}
 
-    case DynamicSupervisor.start_child(sup_name, child_spec) do
-      {:ok, _pid} = ok ->
-        ok
-
-      {:error, {:already_started, pid}} ->
+    case Registry.lookup(registry_name, key) do
+      [{pid, _}] ->
         {:ok, pid}
 
-      {:error, _other} = err ->
-        err
+      [] ->
+        case DynamicSupervisor.start_child(sup_name, child_spec) do
+          {:ok, _pid} = ok ->
+            ok
+
+          {:error, {:already_started, pid}} ->
+            {:ok, pid}
+
+          {:error, _other} = err ->
+            err
+        end
     end
   end
 end
