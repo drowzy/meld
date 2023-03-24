@@ -1,6 +1,6 @@
 # Meld
 
-Request Coalescing 
+A Request coalescing library for Elixir
 
 ## Installation
 

@@ -1,5 +1,6 @@
 defmodule Meld.Supervisor do
   use Supervisor
+  require Logger
 
   def start_link(name, opts \\ []) do
     sup_name = Module.concat([name, "Supervisor"])
@@ -9,7 +10,7 @@ defmodule Meld.Supervisor do
   def init({name, _opts}) do
     children = [
       {DynamicSupervisor, name: Module.concat([name, "DynamicSupervisor"])},
-      {Registry, keys: :unique, name: Module.concat([name, "Registry"])},
+      {Registry, keys: :unique, name: Module.concat([name, "Requests"])},
       {Registry, keys: :duplicate, name: name}
     ]
 
@@ -19,14 +20,16 @@ defmodule Meld.Supervisor do
   @spec start_request(name :: term(), mfa_or_fun :: term(), keyword()) :: {:ok, pid} | term()
   def start_request(name, key, mfa_or_fun, _opts \\ []) do
     sup_name = Module.concat([name, "DynamicSupervisor"])
-    registry_name = Module.concat([name, "Registry"])
-    request_name = {:via, Registry, {registry_name, key}}
+    registry_name = Module.concat([name, "Requests"])
 
-    child_spec = {Meld.Request, {request_name, key, mfa_or_fun, name}}
+    child_spec = {Meld.Request.Worker, {key, mfa_or_fun, name, registry_name}}
 
     case Registry.lookup(registry_name, key) do
-      [{pid, _}] ->
+      [{pid, nil}] ->
         {:ok, pid}
+
+      [{pid, value}] ->
+        {:ok, pid, value}
 
       [] ->
         case DynamicSupervisor.start_child(sup_name, child_spec) do
