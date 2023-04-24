@@ -8,6 +8,15 @@ defmodule MeldTest do
     {:ok, name: name}
   end
 
+  describe "child_spec/1" do
+    test "expects a name" do
+      {:error, {{:EXIT, {exception, _}}, _}} = start_supervised({Meld, []})
+
+      assert Exception.message(exception) ==
+               "the :name option is required when starting Meld"
+    end
+  end
+
   test "should 'attach' to already existing request on key", %{name: name} do
     key = "test"
     parent = self()

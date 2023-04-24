@@ -39,7 +39,7 @@ defmodule Meld.Supervisor do
           {:error, {:already_started, pid}} ->
             {:ok, pid}
 
-          {:error, _other} = err ->
+          err ->
             err
         end
     end
