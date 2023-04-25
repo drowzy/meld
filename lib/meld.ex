@@ -12,7 +12,6 @@ defmodule Meld do
 
   `Meld` uses one `Registry` for key registrations and one `Registry` for dispatching. As with `Task` only the owner of the request is allowed to await the result.
   """
-  require Logger
   @type start_option :: {:name, :atom}
 
   @spec child_spec([start_option]) :: Supervisor.child_spec()
