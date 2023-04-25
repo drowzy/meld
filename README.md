@@ -1,6 +1,9 @@
 # Meld
 
-A Request coalescing library for Elixir
+A Request coalescing library for Elixir.
+
+> Request coalescing is the practice of combining multiple requests for the same object into a single request to origin, 
+> and then potentially using the resulting response to satisfy all pending requests.
 
 ## Installation
 
@@ -14,8 +17,3 @@ def deps do
   ]
 end
 ```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/meld>.
-

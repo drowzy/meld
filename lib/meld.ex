@@ -1,14 +1,16 @@
 defmodule Meld do
   @moduledoc """
   Request coalescing is a technique for reducing load on a system that is handling a large number of identical requests.
+
   When multiple requests with the same key are received within a certain period of time, the requests are combined or "coalesced" into a single request, rather than being processed separately.
 
   For example, consider a system that receives a large number of requests to retrieve data from a database. If many of these requests are identical (i.e. requesting the same data), it can be inefficient to process them all separately.
-  Instead, the system can use request coalescing to combine identical requests into a single request that retrieves the data once and returns the results to all of callers.
+  Instead, the system can use request coalescing to combine identical requests into a single request that retrieves the data once and returns the results to all callers.
 
-  Requests in `Meld` are similar to `Task` with the distinction that the request result dispatched to multiple callers instead of just returning the result for the original call. Essentially like Task but with subscriptions.
+  Requests in `Meld` are similar to `Task` with the distinction that the request result is dispatched to all callers for a given key,
+  instead of just returning the result for the original call.
 
-  `Meld` uses one `Registry` for key registration and one `Registry` for dispatching the result to callers. As with `Task` only the owner of the request is allowed to await the result.
+  `Meld` uses one `Registry` for key registrations and one `Registry` for dispatching. As with `Task` only the owner of the request is allowed to await the result.
   """
   require Logger
   @type start_option :: {:name, :atom}
@@ -158,7 +160,6 @@ defmodule Meld do
   defp receive_request(%Meld.Request{ref: ref, ticket: ticket} = request, timeout) do
     receive do
       {^ticket, reply} ->
-
         if ref do
           Process.demonitor(ref, [:flush])
         end
@@ -166,14 +167,9 @@ defmodule Meld do
         reply
 
       {:DOWN, ^ref, _, _proc, reason} ->
-        Logger.error(
-          "PROCESS DOWN #{inspect(request)} #{inspect(reason)} info: #{inspect(Process.info(self(), :messages), pretty: true)}"
-        )
-
         {:exit, {reason, {__MODULE__, :await, [request, timeout]}}}
     after
       timeout ->
-        Logger.error("timeout #{inspect(request)}")
         Process.demonitor(ref, [:flush])
         {:exit, {:timeout, {__MODULE__, :await, [request, timeout]}}}
     end
